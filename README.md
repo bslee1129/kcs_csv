@@ -1,6 +1,12 @@
-# CSV 데이터 스마트 차트 분석 스튜디오 (CSV Chart Visualizer)
+# CSV 데이터 스마트 차트 분석 스튜디오 PRO (CSV Chart Visualizer)
 
-CSV 파일을 드래그 앤 드롭하여 간편하게 데이터 통계를 확인하고, 다양한 차트(막대, 꺾은선, 도넛, 파이, 레이더)로 즉시 시각화 및 분석할 수 있는 웹 애플리케이션입니다.
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/bslee1129/kcs_csv)
+
+CSV 파일을 드래그 앤 드롭하여 간편하게 데이터 통계를 확인하고, 다양한 차트(막대, 가로바, 스플라인 꺾은선, 도넛, 파이, 폴라, 레이더)와 다각도 4분할 대시보드로 즉시 시각화 및 분석할 수 있는 웹 애플리케이션입니다.
+
+## 🔗 실시간 라이브 데모
+- **GitHub Pages**: [https://bslee1129.github.io/kcs_csv/](https://bslee1129.github.io/kcs_csv/)
+- **Netlify One-Click Deploy**: [Netlify로 1초 배포하기](https://app.netlify.com/start/deploy?repository=https://github.com/bslee1129/kcs_csv)
 
 ## 🌟 주요 기능
 - **드래그 앤 드롭 업로드**: CSV 파일을 브라우저로 끌어다 놓으면 즉시 분석 시작
