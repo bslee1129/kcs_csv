@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV 데이터 스마트 차트 분석 대시보드</title>
+  <!-- Google Fonts & Pretendard -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap"
+    rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- PapaParse CDN for robust CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="background-decorations">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+    <div class="glow glow-3"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+        </div>
+        <div>
+          <h1>CSV 차트 분석 스튜디오</h1>
+          <p class="subtitle">CSV 파일을 끌어다 놓으면 즉시 분석 차트와 요약 통계를 생성합니다</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-sample-data" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          샘플 데이터 불러오기 (수출입 품목 통계)
+        </button>
+      </div>
+    </header>
+
+    <!-- Upload Section -->
+    <section class="upload-section">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="csv-file-input" accept=".csv, text/csv" hidden>
+        <div class="drop-zone-content">
+          <div class="upload-icon-wrapper">
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <div class="drop-text">
+            <h3>CSV 파일을 여기에 드래그하거나 <span class="highlight-text">클릭하여 선택</span></h3>
+            <p>쉼표(,), 세미콜론(;), 탭 구분자 및 UTF-8 / 한글 인코딩을 자동 지원합니다</p>
+          </div>
+          <div class="file-badges">
+            <span class="badge">최대 20만 행 지원</span>
+            <span class="badge">다양한 차트 지원</span>
+            <span class="badge">즉시 이미지 내보내기</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboard Content (hidden initially until CSV is loaded) -->
+    <main id="dashboard-area" class="dashboard-area hidden">
+      <!-- File Metadata & KPI Cards -->
+      <section class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">불러온 파일명</div>
+          <div class="kpi-value file-name" id="kpi-filename">-</div>
+          <div class="kpi-sub" id="kpi-filesize">- KB</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">총 데이터 건수</div>
+          <div class="kpi-value" id="kpi-row-count">0</div>
+          <div class="kpi-sub">헤더 제외 유효 행</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">전체 컬럼 수</div>
+          <div class="kpi-value" id="kpi-col-count">0</div>
+          <div class="kpi-sub" id="kpi-numeric-cols">수치형 0개 / 텍스트 0개</div>
+        </div>
+        <div class="kpi-card highlight">
+          <div class="kpi-label">선택된 수치 컬럼 합계</div>
+          <div class="kpi-value" id="kpi-sum-val">-</div>
+          <div class="kpi-sub" id="kpi-avg-val">평균: -</div>
+        </div>
+      </section>
+
+      <!-- Chart Control Panel & Visualizer -->
+      <section class="analysis-container">
+        <!-- Control Sidebar / Settings Panel -->
+        <aside class="chart-controls-panel">
+          <div class="panel-header">
+            <h3>차트 구성 설정</h3>
+            <button id="btn-reset-filters" class="btn-text" title="설정 초기화">기본값</button>
+          </div>
+
+          <div class="control-group">
+            <label for="chart-type-select">차트 시각화 유형</label>
+            <div class="chart-type-buttons" id="chart-type-group">
+              <button class="type-btn active" data-type="bar" title="막대 그래프">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                막대
+              </button>
+              <button class="type-btn" data-type="line" title="꺾은선 그래프">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                꺾은선
+              </button>
+              <button class="type-btn" data-type="doughnut" title="도넛 그래프">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <circle cx="12" cy="12" r="4"></circle>
+                </svg>
+                도넛
+              </button>
+              <button class="type-btn" data-type="pie" title="원형 파이">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                  <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                </svg>
+                파이
+              </button>
+              <button class="type-btn" data-type="radar" title="방사형 레이더">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"></polygon>
+                </svg>
+                레이더
+              </button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="x-axis-select">기준 컬럼 (X축 / 항목)</label>
+            <div class="select-wrapper">
+              <select id="x-axis-select"></select>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="y-axis-select">값 컬럼 (Y축 / 수치 데이터)</label>
+            <div class="select-wrapper">
+              <select id="y-axis-select"></select>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="agg-type-select">데이터 집계 방식</label>
+            <div class="select-wrapper">
+              <select id="agg-type-select">
+                <option value="sum" selected>합계 (Sum)</option>
+                <option value="avg">평균 (Average)</option>
+                <option value="count">데이터 건수 (Count)</option>
+                <option value="max">최댓값 (Max)</option>
+                <option value="min">최솟값 (Min)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <div class="control-group half">
+              <label for="limit-select">표시 개수</label>
+              <div class="select-wrapper">
+                <select id="limit-select">
+                  <option value="10" selected>상위 10개</option>
+                  <option value="5">상위 5개</option>
+                  <option value="15">상위 15개</option>
+                  <option value="25">상위 25개</option>
+                  <option value="all">전체 표시</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="control-group half">
+              <label for="sort-select">정렬 방식</label>
+              <div class="select-wrapper">
+                <select id="sort-select">
+                  <option value="desc" selected>값 높은순 ↓</option>
+                  <option value="asc">값 낮은순 ↑</option>
+                  <option value="label-asc">항목이름 가나다순</option>
+                  <option value="raw">원본 순서</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="toggle-container">
+              <input type="checkbox" id="toggle-data-labels" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">차트 그리드 라인 표시</span>
+            </label>
+          </div>
+
+          <div class="action-buttons-group">
+            <button id="btn-download-chart" class="btn btn-primary full-width">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              차트 이미지(PNG) 저장
+            </button>
+          </div>
+        </aside>
+
+        <!-- Main Chart Display -->
+        <div class="chart-display-card">
+          <div class="chart-header">
+            <div>
+              <h2 id="chart-dynamic-title">데이터 분석 시각화</h2>
+              <p class="chart-subtitle" id="chart-dynamic-desc">기준 및 값을 선택하여 동적으로 데이터를 탐색하세요</p>
+            </div>
+            <div class="chart-badge" id="chart-summary-badge">10개 항목 시각화 중</div>
+          </div>
+
+          <div class="chart-wrapper">
+            <canvas id="main-chart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Raw Data Table Preview Section -->
+      <section class="table-section">
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title-area">
+              <h3>데이터 원본 미리보기</h3>
+              <span class="table-subtitle" id="table-record-info">1-50번째 행 표시 (총 0건)</span>
+            </div>
+            <div class="table-tools">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="table-search-input" placeholder="테이블 내 검색...">
+              </div>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table id="data-preview-table">
+              <thead>
+                <tr id="table-head-row"></tr>
+              </thead>
+              <tbody id="table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="table-pagination">
+            <button id="btn-prev-page" class="btn btn-secondary btn-sm" disabled>이전</button>
+            <span id="page-indicator">1 / 1 페이지</span>
+            <button id="btn-next-page" class="btn btn-secondary btn-sm">다음</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="app-footer">
+    <p>CSV Data Chart Visualizer &copy; 2026. 클라이언트 기반 로컬 처리로 데이터가 외부 서버로 전송되지 않습니다.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
